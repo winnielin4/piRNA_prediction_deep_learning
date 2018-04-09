@@ -147,9 +147,6 @@ def main(_):
     # Build the graph for the deep net
     y_conv, keep_prob = deepnn(x)
 
-    # auc
-    # auc = tf.contrib.metrics.streaming_auc(y_, y_conv)
-
     with tf.name_scope('loss'):
         cross_entropy = tf.nn.softmax_cross_entropy_with_logits(labels=y_, logits=y_conv)
     cross_entropy = tf.reduce_mean(cross_entropy)
@@ -162,24 +159,23 @@ def main(_):
         correct_prediction = tf.cast(correct_prediction, tf.float32)
     accuracy = tf.reduce_mean(correct_prediction)
 
-    graph_location = tempfile.mkdtemp()
-    print('Saving graph to: %s' % graph_location)
-    train_writer = tf.summary.FileWriter(graph_location)
-    train_writer.add_graph(tf.get_default_graph())
+    # graph_location = tempfile.mkdtemp()
+    # print('Saving graph to: %s' % graph_location)
+    # train_writer = tf.summary.FileWriter(graph_location)
+    # train_writer.add_graph(tf.get_default_graph())
 
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
-        # sess.run(tf.initialize_all_variables())
-        # sess.run(tf.initialize_local_variables()) # try commenting this line and you'll get the error
         for i in range(100000):
             batch = piRNA.train.next_batch(50)
             if i % 50 == 0:
                 train_accuracy = accuracy.eval(feed_dict={x: batch[0], y_: batch[1], keep_prob: 1.0})
                 print('step %d, training accuracy %g' % (i, train_accuracy))
             train_step.run(feed_dict={x:batch[0], y_: batch[1], keep_prob: 0.5})
+            
+            if i % 1000 == 0:
+                print('test accuracy %g' % accuracy.eval(feed_dict={x: piRNA.test.images, y_:piRNA.test.labels, keep_prob: 1.0}))
         
-        # train_auc = sess.run(auc)
-        # print(train_auc)
         print('test accuracy %g' % accuracy.eval(feed_dict={x: piRNA.test.images, y_:piRNA.test.labels, keep_prob: 1.0}))
 
 if __name__ == '__main__':
