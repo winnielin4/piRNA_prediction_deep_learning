@@ -2,6 +2,7 @@ import numpy as np
 import collections
 
 Datasets = collections.namedtuple('Dataset', ['train', 'validation', 'test'])
+# Datasets = collections.namedtuple('Dataset', ['train', 'test'])
 
 class DataSet(object):
     
@@ -31,6 +32,12 @@ class DataSet(object):
     def epochs_completed(self):
         return self._epochs_completed
     
+    def shuffle(self):
+        perm0 = np.arange(self._num_examples)
+        np.random.shuffle(perm0)
+        self._images = self.images[perm0]
+        self._labels = self.labels[perm0]
+
     def next_batch(self, batch_size, fake_data=False, shuffle=True):
         start = self._index_in_epoch
 
@@ -68,13 +75,14 @@ class DataSet(object):
             end = self._index_in_epoch
             return self._images[start:end], self._labels[start:end]
 
-def read_data_sets(validation_size=5000,
+def read_data_sets(fold,
                    # dtype=dtype.float32,
                    reshape=True,
                    seed=None):
 
-    TRAIN_NUMBER = 14810
-    TEST_NUMBER = 15
+    TRAIN_NUMBER = 13810
+    TEST_NUMBER = 1000
+    VALIDATION_SIZE = TRAIN_NUMBER / 5;
 
     # TODO(Lin): add test file
     TRAIN_IMAGES = '../../source/SparseProfileFeatureHumanINT.txt'
@@ -93,10 +101,17 @@ def read_data_sets(validation_size=5000,
 
     # TODO(Lin): shuffle the samples
     # divide all samples into train sets and validation sets
-    validation_images = train_images[:validation_size]
-    validation_labels = train_labels[:validation_size]
-    train_images = train_images[validation_size:]
-    train_labels = train_labels[validation_size:]
+    # validation_images = train_images[:validation_size]
+    # validation_labels = train_labels[:validation_size]
+    # train_images = train_images[validation_size:]
+    # train_labels = train_labels[validation_size:]
+    validation_images = train_images[fold*VALIDATION_SIZE : fold*VALIDATION_SIZE + VALIDATION_SIZE]
+    validation_labels = train_labels[fold*VALIDATION_SIZE : fold*VALIDATION_SIZE + VALIDATION_SIZE]
+    
+    train_range = list(set(range(TRAIN_NUMBER)).difference(set(range(fold*VALIDATION_SIZE, fold*VALIDATION_SIZE + VALIDATION_SIZE))))
+    train_images = train_images[train_range]
+    train_labels = train_labels[train_range]
+
 
     # save to DataSets
     # option = dict(dtype=dtype, reshape=False, seed=seed)
@@ -105,5 +120,5 @@ def read_data_sets(validation_size=5000,
     train = DataSet(train_images, train_labels)
     validation = DataSet(validation_images, validation_labels)
     test = DataSet(test_images, test_labels)
-
+    
     return Datasets(train=train, validation=validation, test=test)

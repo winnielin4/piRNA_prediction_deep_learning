@@ -19,14 +19,14 @@ import tensorflow as tf
 FLAGS = None
 
 LOGS_DIRECTORY = "logs/train"
-TOTAL_BATCH = 100000
+TOTAL_BATCH = 2000
 
 
 
 
 def main(_):
     # Import data
-    piRNA = input_data.read_data_sets()
+    # piRNA = input_data.read_data_sets()
 
     # Create the model
     x = tf.placeholder(tf.float32, [None, 175])
@@ -64,7 +64,7 @@ def main(_):
     # Add ops to save and restore all the variables
     saver = tf.train.Saver()
     sess = tf.InteractiveSession()
-
+    
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
 
@@ -73,24 +73,32 @@ def main(_):
         max_acc = 0;
 
         # shuffle the training set
-        # np.random.shuffle(piRNA.train);
-        
-        for i in range(TOTAL_BATCH):
-            batch = piRNA.train.next_batch(50)
+        # np.random.shuffle(piRNA.train)
+
+        for fold in range(5):
             
-            step, training_accuracy, summary = sess.run([train_step, accuracy, merged_summary_op], feed_dict={x:batch[0], y_:batch[1], keep_prob:0.5})            
+            print('fold %d:' % fold)
+            piRNA = input_data.read_data_sets(fold)
             
-            # Write logs at every iteration
-            summary_writer.add_summary(summary, i)
+            for i in range(TOTAL_BATCH):
+
+                batch = piRNA.train.next_batch(50)
             
-            # print out results
-            if i % 50 == 0:
-                print('step %d, training accuracy %g' % (i, training_accuracy))
-            if i % 1000 == 0:
-                print('test accuracy %g' % accuracy.eval(feed_dict={x: piRNA.test.images, y_:piRNA.test.labels, keep_prob: 1.0}))
-        
-        # Test Set
-        print('test accuracy %g' % accuracy.eval(feed_dict={x: piRNA.test.images, y_:piRNA.test.labels, keep_prob: 1.0}))
+                step, training_accuracy, summary = sess.run([train_step, accuracy, merged_summary_op], feed_dict={x:batch[0], y_:batch[1], keep_prob:0.5})            
+            
+                # Write logs at every iteration
+                summary_writer.add_summary(summary, i)
+            
+                # print out results
+                if i % 50 == 0:
+                    print('step %d, training accuracy %g' % (i, training_accuracy))
+                if i % 1000 == 0:
+                    print('test accuracy %g' % accuracy.eval(feed_dict={x: piRNA.test.images, y_:piRNA.test.labels, keep_prob: 1.0}))
+            
+            # Validation Set
+            print('Validation Set accuracy %g' % accuracy.eval(feed_dict={x: piRNA.validation.images, y_:piRNA.validation.labels, keep_prob: 1.0}))
+            # Test Set
+            print('Test Set accuracy %g' % accuracy.eval(feed_dict={x: piRNA.test.images, y_:piRNA.test.labels, keep_prob: 1.0}))
 
 
 if __name__ == '__main__':
