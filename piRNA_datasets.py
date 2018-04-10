@@ -75,15 +75,7 @@ class DataSet(object):
             end = self._index_in_epoch
             return self._images[start:end], self._labels[start:end]
 
-def read_data_sets(fold,
-                   # dtype=dtype.float32,
-                   reshape=True,
-                   seed=None):
-
-    TRAIN_NUMBER = 13810
-    TEST_NUMBER = 1000
-    VALIDATION_SIZE = TRAIN_NUMBER / 5;
-
+def read_all(reshape=True, seed=None, TRAIN_NUMBER=13810):
     # TODO(Lin): add test file
     TRAIN_IMAGES = '../../source/SparseProfileFeatureHumanINT.txt'
     TRAIN_LABELS = '../../source/labelHuman.txt'
@@ -93,11 +85,44 @@ def read_data_sets(fold,
     # load sequence matrix
     train_images = np.loadtxt(TRAIN_IMAGES, delimiter=' ', dtype='float32')
     train_labels = np.loadtxt(TRAIN_LABELS, delimiter=' ', dtype='float32')
-    # train_labels.shape = (TRAIN_NUMBER-TEST_NUMBER, 1)
 
     test_images = np.loadtxt(TEST_IMAGES, delimiter=' ', dtype='float32')
     test_labels = np.loadtxt(TEST_LABELS, delimiter=' ', dtype='float32')
-    # test_labels.shape = (TEST_NUMBER, 1)
+    
+    perm0 = np.arange(TRAIN_NUMBER)
+    np.random.shuffle(perm0)
+    train_images = train_images[perm0]
+    train_labels = train_labels[perm0]
+
+    return train_images, train_labels, test_images, test_labels
+
+def read_CV_datasets(fold, all_datasets):
+                   # dtype=dtype.float32,
+                   #reshape=True,
+                   #seed=None):
+
+    TRAIN_NUMBER = 13810
+    TEST_NUMBER = 1000
+    VALIDATION_SIZE = TRAIN_NUMBER / 5
+    
+    train_images = all_datasets[0]
+    train_labels = all_datasets[1]
+    test_images = all_datasets[2]
+    test_labels = all_datasets[3]
+    
+    # TODO(Lin): add test file
+    # TRAIN_IMAGES = '../../source/SparseProfileFeatureHumanINT.txt'
+    # TRAIN_LABELS = '../../source/labelHuman.txt'
+    # TEST_IMAGES = '../../source/TestSequences.txt'
+    # TEST_LABELS = '../../source/TestLabels.txt'
+
+    # load sequence matrix
+    # train_images = np.loadtxt(TRAIN_IMAGES, delimiter=' ', dtype='float32')
+    # train_labels = np.loadtxt(TRAIN_LABELS, delimiter=' ', dtype='float32')
+    
+    # test_images = np.loadtxt(TEST_IMAGES, delimiter=' ', dtype='float32')
+    # test_labels = np.loadtxt(TEST_LABELS, delimiter=' ', dtype='float32')
+    
 
     # TODO(Lin): shuffle the samples
     # divide all samples into train sets and validation sets

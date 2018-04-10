@@ -12,6 +12,7 @@ import numpy as np
 import piRNA_datasets as input_data
 import cnn_lin_model
 import complicated_tensorflow_model as ctm
+import cross_validation as cv
 
 import tensorflow as tf
 
@@ -19,7 +20,7 @@ import tensorflow as tf
 FLAGS = None
 
 LOGS_DIRECTORY = "logs/train"
-TOTAL_BATCH = 2000
+TOTAL_BATCH = 10000
 
 
 
@@ -70,16 +71,20 @@ def main(_):
 
         summary_writer = tf.summary.FileWriter(LOGS_DIRECTORY, graph=tf.get_default_graph())
 
-        max_acc = 0;
-
+        max_acc = 0
+        sum_acc = 0
         # shuffle the training set
         # np.random.shuffle(piRNA.train)
 
+        all_piRNA = input_data.read_all()
+        
         for fold in range(5):
             
             print('fold %d:' % fold)
-            piRNA = input_data.read_data_sets(fold)
+            piRNA = input_data.read_CV_datasets(fold, all_piRNA)
+            # piRNA = input_data.read_data_sets(fold)
             
+
             for i in range(TOTAL_BATCH):
 
                 batch = piRNA.train.next_batch(50)
@@ -99,7 +104,9 @@ def main(_):
             print('Validation Set accuracy %g' % accuracy.eval(feed_dict={x: piRNA.validation.images, y_:piRNA.validation.labels, keep_prob: 1.0}))
             # Test Set
             print('Test Set accuracy %g' % accuracy.eval(feed_dict={x: piRNA.test.images, y_:piRNA.test.labels, keep_prob: 1.0}))
-
+           
+            # 5-CV metrices
+            sum_acc = cv.acc(sum_acc, accuracy.eval(feed_dict={x: piRNA.validation.images, y_:piRNA.validation.labels, keep_prob: 1.0}), fold)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
