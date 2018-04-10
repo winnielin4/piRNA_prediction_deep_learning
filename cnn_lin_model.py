@@ -19,13 +19,13 @@ def CNN(inputs, is_training=True):
         # padding='SAME', activation_fn=nn.relu,
         # weights_initializer = initializers.xavier_initializer(),
         # biases_initializer = init_ops.zeros_initializer,
-        net = slim.conv2d(x, 8, [1, 2], scope='conv1')
+        net = slim.conv2d(x, 32, [1, 10], scope='conv1')
         # net = slim.max_pool2d(net, [1, 2], scope='pool1')        
-        net = slim.conv2d(net, 16, [1, 2], scope='conv2')
+        net = slim.conv2d(net, 16, [1, 3], scope='conv2')
         net = slim.max_pool2d(net, [1, 2], scope='pool1')
         # net = slim.max_pool2d(net, [1, 2], scope='pool2')
-        net = slim.conv2d(net, 32, [1, 2], scope='conv3')
-        net = slim.conv2d(net, 64, [1, 2], scope='conv4')
+        net = slim.conv2d(net, 32, [1, 5], scope='conv3')
+        net = slim.conv2d(net, 64, [1, 5], scope='conv4')
         net = slim.max_pool2d(net, [1, 2], scope='pool2')
         net = slim.flatten(net, scope='flatten3')
 
