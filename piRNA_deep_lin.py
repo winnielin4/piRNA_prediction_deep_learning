@@ -20,10 +20,7 @@ import tensorflow as tf
 FLAGS = None
 
 LOGS_DIRECTORY = "logs/train"
-TOTAL_BATCH = 10000
-
-
-
+TOTAL_BATCH = 50000
 
 def main(_):
     # Import data
@@ -56,6 +53,17 @@ def main(_):
         correct_prediction = tf.cast(correct_prediction, tf.float32)
     accuracy = tf.reduce_mean(correct_prediction)
 
+    # define auc monitor
+    with tf.name_scope('auc'):
+        # labels = tf.slice(tf.greater(y_, 0.5), [0, 0], [-1, 1])
+        # tf.reshape(a, [-1])
+        labels = tf.reshape(tf.slice(tf.cast(y_, dtype=tf.bool), [0,0],[-1,1]), [-1])
+        predictions = tf.reshape(tf.subtract(tf.slice(y_conv, [0,0], [-1,1]), tf.slice(y_conv, [0,1], [-1,1])), [-1])
+        
+        # Min Max Normalization
+        Y_pred = (predictions-tf.reduce_min(predictions))/(tf.reduce_max(predictions) - tf.reduce_min(predictions))
+        roc_auc, roc_auc_update_op = tf.metrics.auc(labels, Y_pred, curve='ROC', name='roc')
+
     # create a summary to monitor accuracy tensor
     tf.summary.scalar('acc', accuracy)
 
@@ -68,13 +76,14 @@ def main(_):
     
     with tf.Session() as sess:
         sess.run(tf.global_variables_initializer())
+        sess.run(tf.local_variables_initializer())
 
         summary_writer = tf.summary.FileWriter(LOGS_DIRECTORY, graph=tf.get_default_graph())
 
         max_acc = 0
         sum_acc = 0
+        sum_auc = 0
         # shuffle the training set
-        # np.random.shuffle(piRNA.train)
 
         all_piRNA = input_data.read_all()
         
@@ -86,11 +95,11 @@ def main(_):
             
 
             for i in range(TOTAL_BATCH):
-
+                
                 batch = piRNA.train.next_batch(50)
-            
+
                 step, training_accuracy, summary = sess.run([train_step, accuracy, merged_summary_op], feed_dict={x:batch[0], y_:batch[1], keep_prob:0.5})            
-            
+
                 # Write logs at every iteration
                 summary_writer.add_summary(summary, i)
             
@@ -100,13 +109,24 @@ def main(_):
                 if i % 1000 == 0:
                     print('test accuracy %g' % accuracy.eval(feed_dict={x: piRNA.test.images, y_:piRNA.test.labels, keep_prob: 1.0}))
             
+
             # Validation Set
-            print('Validation Set accuracy %g' % accuracy.eval(feed_dict={x: piRNA.validation.images, y_:piRNA.validation.labels, keep_prob: 1.0}))
+            acc = accuracy.eval(feed_dict={x:piRNA.validation.images, y_:piRNA.validation.labels, keep_prob:1.0})
+            
+            auc = sess.run(roc_auc_update_op, feed_dict={x: piRNA.validation.images, y_: piRNA.validation.labels, keep_prob:1.0})
+            
+            # labels, predictions, Y_pred = sess.run([labels, predictions, Y_pred], feed_dict={x:piRNA.validation.images, y_:piRNA.validation.labels, keep_prob:1.0}) # For Debug
+            # print(labels)
+            # print(predictions)
+            # print(Y_pred)
+
             # Test Set
             print('Test Set accuracy %g' % accuracy.eval(feed_dict={x: piRNA.test.images, y_:piRNA.test.labels, keep_prob: 1.0}))
-           
-            # 5-CV metrices
-            sum_acc = cv.acc(sum_acc, accuracy.eval(feed_dict={x: piRNA.validation.images, y_:piRNA.validation.labels, keep_prob: 1.0}), fold)
+
+
+            # 5-CV metrices (acc, auc)
+            sum_acc = cv.acc(sum_acc, acc, fold)
+            sum_auc = cv.auc(sum_auc, auc, fold)
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
